@@ -1,0 +1,110 @@
+use glob::glob;
+use std::fs::File;
+use xml::reader::{EventReader,XmlEvent};
+use xml::reader::XmlEvent as ReaderEvent;
+
+use std::io::{BufRead,BufReader};
+
+struct Vulnerabilities{
+    VulnerabilityName: Vec<String>,
+    IpAddress: String,
+    HostName: String,
+    Category: Vec<String>,
+    SecurityLevel: Vec<i8>,
+    Explanation: Vec<String>,
+    Solution: Vec<String>,
+    IndustryReference: Vec<String>,
+    Result: Vec<String>,
+    Ports: Ports,
+}
+
+struct Ports{
+    IpAddress: String,
+    Type: String,
+    Port: i8,
+    Description: String,
+}
+
+fn get_files() -> Vec<std::path::PathBuf>{
+    let mut faxvec: Vec<std::path::PathBuf> = Vec::new();
+    for element in std::path::Path::new("").read_dir().unwrap() {
+        let path = element.unwrap().path();
+        if let Some(extension) = path.extension() {
+            if extension == "xml" {
+                faxvec.push(path);
+            }
+        }
+    }
+    faxvec
+}
+
+
+fn main() {
+    let mut xmlvec: Vec<std::path::PathBuf> = get_files();
+    let mut vulnvec: Vec<Vulnerabilities> = Vec::new();
+    
+    let mut vulnname: Vec<String> = Vec::new();
+    let mut vulnip: String = String::from("");
+    let mut vulnhost: String = String::from("");
+    let mut vulncat: Vec<String> = Vec::new();
+    let mut vulnsec: Vec<i8> = Vec::new();
+    let mut vulnex: Vec<String> = Vec::new();
+    let mut vulnsol: Vec<String> = Vec::new();
+    let mut vulnind: Vec<String> = Vec::new();
+    let mut vulnre: Vec<String> = Vec::new();
+
+    let mut portsip: String = String::from("");
+    let mut portstype: String = String::from("");
+    let mut protsport: String = String::from("");
+    let mut portsdes: String = String::from("");
+
+
+
+    for file in xmlvec{
+        let openfile= File::open(file).unwrap();
+        let openfile = EventReader::new(BufReader::new(openfile));
+{
+        let mut depth = 0;
+        for e in openfile{
+            match e {
+                Ok(XmlEvent::StartElement { name, attributes, ..})=>{
+                    if name.local_name == "IP" {
+                        for x in &attributes {
+                            if x.name.to_string().contains("value")  {  vulnip = x.value.clone();};
+                            if x.name.to_string().contains("name")  {  vulnhost = x.value.clone();};
+                        }
+                    }
+
+                    if name.local_name == "CAT"{
+                        for x in &attributes{
+                            if x.name.to_string().contains("value") { vulncat.push(x.value.clone());}
+                            //println!("{}", x.value)
+                        }
+                    }
+
+                    if name.local_name =="INFO"{
+                        for x in &attributes{
+                            if x.name.to_string().contains("severity")  { vulnsec.push(x.value.clone().parse::<i8>().unwrap())};
+                        }   
+                    }
+
+                    if name.local_name == "TITLE"{
+                        println!("{:?}",);
+                        }
+                }
+
+                Ok(XmlEvent::EndElement{name})=>{
+                    if name.local_name == "IP"{
+                        println!("Finishied with: {} - {}", vulnip, vulnhost);
+                    }
+                }
+                Err(e) => { 
+                    println!("Error: {}", e);
+                    break;
+                }
+                _ =>{}
+            }
+        }
+    }
+}
+}
